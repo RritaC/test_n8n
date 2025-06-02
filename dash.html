@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Mendex Dashboard – Agent</title>
+    <style>
+        /* ─────────────────────────────────────────────────────────────────────────
+       RESET & GLOBALS
+       ───────────────────────────────────────────────────────────────────────── */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f7fa;
+            color: #2c3e50;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────────
+       LAYOUT: SIDEBAR + TOPBAR + MAIN
+       ───────────────────────────────────────────────────────────────────────── */
+        .dashboard {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: #1f2937;
+            /* dark slate */
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+        }
+
+        .sidebar .logo {
+            padding: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-menu {
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: #374151;
+            /* slightly lighter */
+        }
+
+        .nav-item svg {
+            margin-right: 0.75rem;
+            fill: #9ca3af;
+            width: 20px;
+            height: 20px;
+        }
+
+        .nav-item.active svg {
+            fill: #fff;
+        }
+
+        .nav-item span {
+            color: #d1d5db;
+        }
+
+        .nav-item.active span {
+            color: #fff;
+        }
+
+        /* Add Content button at bottom */
+        .sidebar .add-content-btn {
+            margin: 1rem;
+            padding: 0.75rem;
+            background: #2563eb;
+            /* blue */
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 1rem;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .sidebar .add-content-btn:hover {
+            background: #1e40af;
+        }
+
+        /* Main panel (everything to the right of sidebar) */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top bar */
+        .topbar {
+            height: 60px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .topbar .hamburger {
+            cursor: pointer;
+            margin-right: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .topbar .hamburger svg {
+            width: 24px;
+            height: 24px;
+            fill: #4b5563;
+        }
+
+        .topbar .search-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .topbar .search-container input {
+            width: 100%;
+            max-width: 400px;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            font-size: 0.95rem;
+        }
+
+        .topbar .search-container svg {
+            position: absolute;
+            margin-left: -28px;
+            fill: #9ca3af;
+            width: 16px;
+            height: 16px;
+        }
+
+        .topbar .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-left: 1.5rem;
+        }
+
+        .topbar .topbar-actions .notification {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .topbar .topbar-actions .notification svg {
+            width: 24px;
+            height: 24px;
+            fill: #6b7280;
+        }
+
+        .topbar .topbar-actions .notification .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: #fff;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            padding: 2px 5px;
+        }
+
+        .topbar .topbar-actions .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .topbar .topbar-actions .user-menu .avatar {
+            width: 32px;
+            height: 32px;
+            background: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .topbar .topbar-actions .user-menu .user-info {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .topbar .topbar-actions .user-menu .user-info {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .topbar .topbar-actions .user-menu .user-info .name {
+                font-size: 0.95rem;
+                color: #374151;
+            }
+
+            .topbar .topbar-actions .user-menu .user-info .role {
+                font-size: 0.75rem;
+                color: #6b7280;
+            }
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────────
+       AGENT PANEL: SPLIT INTO TWO COLUMNS
+       ───────────────────────────────────────────────────────────────────────── */
+        .agent-panel {
+            flex: 1;
+            display: flex;
+            background: #f4f7fa;
+            overflow: hidden;
+        }
+
+        /* Left: Member Groups */
+        .member-groups {
+            width: 320px;
+            background: #fff;
+            border-right: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .member-groups h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #1e40af;
+        }
+
+        .groups-list {
+            margin-top: 1rem;
+        }
+
+        .group-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            padding: 1rem;
+        }
+
+        .group-item h3 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .group-item .delete-group {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            margin-left: 0.5rem;
+        }
+
+        .group-item .members-list {
+            margin-top: 0.75rem;
+            list-style: none;
+        }
+
+        .group-item .members-list li {
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        .group-item .members-list li:last-child {
+            border-bottom: none;
+        }
+
+        .group-item .add-member-form {
+            margin-top: 0.75rem;
+        }
+
+        .group-item .add-member-form input {
+            width: calc(100% - 80px);
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+        }
+
+        .group-item .add-member-form button {
+            padding: 0.5rem 0.75rem;
+            background: #10b981;
+            /* green */
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .group-item .add-member-form button:hover {
+            background: #059669;
+        }
+
+        .group-item .feedback {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .group-item .feedback.success {
+            color: #16a34a;
+        }
+
+        .group-item .feedback.error {
+            color: #dc2626;
+        }
+
+        /* Right: Chat Window */
+        .chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+        }
+
+        .chat-header {
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+        }
+
+        .chat-header h2 {
+            font-size: 1.25rem;
+            color: #1f2937;
+        }
+
+        .messages {
+            flex: 1;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 0.75rem;
+            display: flex;
+        }
+
+        .message.agent {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message .bubble {
+            max-width: 70%;
+            padding: 0.6rem 0.9rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .message.agent .bubble {
+            background: #f3f4f6;
+            color: #374151;
+            border-bottom-left-radius: 0;
+        }
+
+        .message.user .bubble {
+            background: #2563eb;
+            color: #fff;
+            border-bottom-right-radius: 0;
+        }
+
+        .chat-input {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.6rem;
+            font-size: 0.95rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+
+        .chat-input button {
+            padding: 0.6rem 1rem;
+            background: #2563eb;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+
+        .chat-input button:hover {
+            background: #1e40af;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo">Mendex</div>
+            <nav class="nav-menu">
+                <div class="nav-item">
+                    <!-- Home Icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M3 9.72L12 2l9 7.72v10.78A2.5 2.5 0 0 1 18.5 22h-13A2.5 2.5 0 0 1 3 20.5V9.72zM12 4.5L5 10v9.5c0 .28.22.5.5.5H9v-7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v7h3.5a.5.5 0 0 0 .5-.5V10l-7-5.5z">
+                        </path>
+                    </svg>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item">
+                    <!-- Calendar Icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V6c0-1.1-.9-2-2-2zM5 20V9h14l.002 11H5z">
+                        </path>
+                    </svg>
+                    <span>Calendar</span>
+                </div>
+                <div class="nav-item">
+                    <!-- Feed Icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 4h16v2H4V4zm0 6h10v2H4v-2zm0 6h16v2H4v-2z"></path>
+                    </svg>
+                    <span>Social Feed</span>
+                </div>
+                <div class="nav-item active">
+                    <!-- Agent Icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 2a7 7 0 0 1 7 7v4a7 7 0 1 1-14 0V9a7 7 0 0 1 7-7zm0 2a5 5 0 0 0-5 5v4a5 5 0 1 0 10 0V9a5 5 0 0 0-5-5zm1 13h-2v2h2v-2zm0-8h-2v6h2V9z">
+                        </path>
+                    </svg>
+                    <span>Agent</span>
+                </div>
+                <div class="nav-item">
+                    <!-- Settings Icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 8a4 4 0 1 0 .001 8.001A4 4 0 0 0 12 8zm9.14 3.63l-1.42-1.42a7.978 7.978 0 0 0-.5-1.12l1.61-.38c.34-.08.56-.39.53-.74l-.1-1.72a.757.757 0 0 0-.75-.69h-1.9c-.36 0-.67.24-.74.59l-.38 1.62a8.01 8.01 0 0 0-1.12-.5L12.37 2.86c-.17-.17-.38-.26-.59-.26H9.6a.757.757 0 0 0-.75.69l-.1 1.72c-.03.35.19.66.53.74l1.61.38c-.26.41-.47.86-.62 1.34l-1.41-.36c-.3-.07-.61.02-.82.22l-1.36 1.36c-.19.2-.26.5-.18.77l.38 1.61c-.48.15-.93.36-1.34.62l-.38-1.62c-.07-.34-.39-.56-.74-.53l-1.72.1a.757.757 0 0 0-.69.75v1.9c0 .36.24.67.59.74l1.62.38c-.15.48-.26.98-.26 1.5 0 .51.09 1.02.26 1.5l-1.62.38c-.35.08-.66.39-.59.74l.1 1.71c.03.35.35.61.7.57l1.71-.38c.15.48.36.93.62 1.34l-1.61.38c-.35.08-.56.39-.53.74l.1 1.71c.03.35.35.61.7.57l1.71-.38c.15.48.36.93.62 1.34l-1.61.38c-.35.08-.56.39-.53.74l.1 1.71c.03.35.35.61.7.57l1.71-.38c.15.48.36.93.62 1.34l-1.63.38c-.34.07-.57.38-.53.73l.11 1.71c.03.35.35.61.7.57l1.71-.38c.15.48.36.93.62 1.34l-1.63.38c-.35.08-.56.39-.53.74l.11 1.71c.03.35.35.61.7.57l1.71-.38c.15.48.36.93.62 1.34l-1.63.38c-.35.08-.56.39-.53.74l.11 1.71c.03.35.35.61.7.57l1.71-.38c.15.48.36.93.62 1.34l-1.63.38c-.34.07-.57.38-.53.73l.11 1.71c.03.35.35.61.7.57l1.71-.38c.15.48.36.93.62 1.34l-1.63.38c-.35.08-.56.39-.53.74l.11 1.71c.03.35.35.61.7.57l1.71-.38z">
+                        </path>
+                    </svg>
+                    <span>Settings</span>
+                </div>
+            </nav>
+            <button class="add-content-btn">+ Add Content</button>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="main">
+            <!-- Top Bar -->
+            <div class="topbar">
+                <div class="hamburger">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path>
+                    </svg>
+                </div>
+                <div class="search-container" style="position: relative;">
+                    <input type="text" placeholder="Search anything…" />
+                    <svg viewBox="0 0 24 24"
+                        style="position: absolute; top: 50%; transform: translateY(-50%); right: 10px;">
+                        <path
+                            d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z">
+                        </path>
+                    </svg>
+                </div>
+                <div class="topbar-actions">
+                    <div class="notification">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M12 22a2 2 0 0 0 1.995-1.85L14 20h-4l.005.15A2 2 0 0 0 12 22zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 1 0-3 0v.68C7.64 5.36 6 7.92 6 11v5l-1.29 1.29A1 1 0 0 0 5 19h14a1 1 0 0 0 .71-1.71L18 16z">
+                            </path>
+                        </svg>
+                        <div class="badge">3</div>
+                    </div>
+                    <div class="user-menu">
+                        <div class="avatar">JD</div>
+                        <div class="user-info">
+                            <div class="name">John Doe</div>
+                            <div class="role">Administrator</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AGENT PANEL (Member Groups + Chat) -->
+            <div class="agent-panel">
+                <!-- LEFT: Member Groups Column -->
+                <div class="member-groups">
+                    <h2>Member Groups</h2>
+                    <button id="addGroupBtn" class="btn-primary">＋ Add Group</button>
+                    <div class="groups-list" id="groupsList">
+                        <!-- JS will render group items here -->
+                    </div>
+                </div>
+
+                <!-- RIGHT: Chat Window Column -->
+                <div class="chat-window">
+                    <div class="chat-header">
+                        <h2>WhatsApp Agent Chat</h2>
+                    </div>
+                    <div class="messages" id="chatMessages">
+                        <!-- JS will append chat bubbles here -->
+                        <p style="color:#6b7280; text-align:center; margin-top:2rem;">
+                            Say hello to your agent!
+                        </p>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="chatInputField" placeholder="Type a message…" />
+                        <button id="sendChatBtn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ────────────────────────────────────────────────────────────────────────────
+        // UTILITY FUNCTIONS
+        // ────────────────────────────────────────────────────────────────────────────
+        function createElementFromHTML(htmlString) {
+            const div = document.createElement('div');
+            div.innerHTML = htmlString.trim();
+            return div.firstChild;
+        }
+
+        // Add a “Member Group” item to the DOM
+        function renderGroup(group) {
+            // group: { id: "...", name: "...", members: ["a@b.com", "c@d.com", ...] }
+            const container = document.getElementById('groupsList');
+
+            // Check if the group already exists in DOM
+            if (document.querySelector(`[data-group-id="${group.id}"]`)) return;
+
+            const html = `
+        <div class="group-item" data-group-id="${group.id}">
+          <h3>
+            ${group.name}
+            <button class="delete-group" title="Delete Group">✕</button>
+          </h3>
+          <ul class="members-list">
+            ${group.members.map(email => `<li>${email}
+                <button class="remove-member" data-email="${email}" style="background:none;border:none;color:#ef4444;cursor:pointer;">×</button>
+              </li>`).join('')}
+          </ul>
+          <form class="add-member-form">
+            <input type="email" name="memberEmail" placeholder="member@example.com" required />
+            <button type="submit">＋</button>
+            <div class="feedback"></div>
+          </form>
+        </div>
+      `;
+            const el = createElementFromHTML(html);
+            container.appendChild(el);
+
+            // Attach event listeners for “Delete Group”, “Remove Member”, and “Add Member”:
+            el.querySelector('.delete-group').addEventListener('click', () => deleteGroup(group.id));
+            el.querySelectorAll('.remove-member').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const email = btn.getAttribute('data-email');
+                    removeMember(group.id, email);
+                });
+            });
+            el.querySelector('.add-member-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const input = e.target.memberEmail;
+                addMemberToGroup(group.id, input.value, el);
+                input.value = '';
+            });
+        }
+
+        // Update a group’s member list in the DOM
+        function updateGroupMembers(groupId, members) {
+            const groupItem = document.querySelector(`[data-group-id="${groupId}"]`);
+            if (!groupItem) return;
+            const ul = groupItem.querySelector('.members-list');
+            ul.innerHTML = members.map(email => `
+        <li>
+          ${email}
+          <button class="remove-member" data-email="${email}" style="background:none;border:none;color:#ef4444;cursor:pointer;">×</button>
+        </li>
+      `).join('');
+            // Re‐attach remove listeners:
+            groupItem.querySelectorAll('.remove-member').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const email = btn.getAttribute('data-email');
+                    removeMember(groupId, email);
+                });
+            });
+        }
+
+        // Remove a group item from the DOM
+        function removeGroupFromDOM(groupId) {
+            const groupItem = document.querySelector(`[data-group-id="${groupId}"]`);
+            if (groupItem) groupItem.remove();
+        }
+
+        // Append a chat message bubble to chat window
+        function appendChatBubble(text, sender = 'agent') {
+            const container = document.getElementById('chatMessages');
+            // Remove “Say hello…” placeholder if present
+            if (container.querySelector('p[style]')) {
+                container.innerHTML = '';
+            }
+            const cssClass = sender === 'user' ? 'message user' : 'message agent';
+            const bubbleHtml = `
+        <div class="${cssClass}">
+          <div class="bubble">${text}</div>
+        </div>
+      `;
+            const el = createElementFromHTML(bubbleHtml);
+            container.appendChild(el);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Show an error/success in a feedback div inside the group item
+        function showGroupFeedback(groupEl, message, isError = false) {
+            const fb = groupEl.querySelector('.feedback');
+            fb.textContent = message;
+            fb.className = 'feedback ' + (isError ? 'error' : 'success');
+            setTimeout(() => fb.textContent = '', 3000);
+        }
+
+        // ────────────────────────────────────────────────────────────────────────────
+        // STATE: in-memory list of groups (id, name, members[])
+        // In a real app you’d fetch this from your DB via an n8n endpoint on load.
+        // Here, we’ll start with an empty array and add groups via the form.
+        // ────────────────────────────────────────────────────────────────────────────
+        let groups = [];
+
+        // ────────────────────────────────────────────────────────────────────────────
+        // FETCH & MUTATION FUNCTIONS (calling your n8n webhooks)
+        // ────────────────────────────────────────────────────────────────────────────
+        async function loadGroups() {
+            // In a real scenario, you might do:
+            // const res = await fetch('https://YOUR_N8N_HOST/webhook/get-groups');
+            // groups = await res.json();
+            // But here we’ll assume groups is already in memory or loaded.
+            groups.forEach(renderGroup);
+        }
+
+        async function createGroup(name) {
+            try {
+                const res = await fetch('https://YOUR_N8N_HOST/webhook/add-group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupName: name })
+                });
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => '');
+                    throw new Error(`n8n error: ${res.status} ${txt}`);
+                }
+                const newGroup = await res.json();
+                // Expect newGroup = { id: 'abc123', name: 'Group Name', members: [] }
+                groups.push(newGroup);
+                renderGroup(newGroup);
+            } catch (err) {
+                alert('Error creating group: ' + err.message);
+            }
+        }
+
+        async function deleteGroup(groupId) {
+            try {
+                const res = await fetch('https://YOUR_N8N_HOST/webhook/delete-group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupId })
+                });
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => '');
+                    throw new Error(`n8n error: ${res.status} ${txt}`);
+                }
+                // Remove from local state & DOM
+                groups = groups.filter(g => g.id !== groupId);
+                removeGroupFromDOM(groupId);
+            } catch (err) {
+                alert('Error deleting group: ' + err.message);
+            }
+        }
+
+        async function addMemberToGroup(groupId, email, groupEl) {
+            try {
+                const res = await fetch('https://YOUR_N8N_HOST/webhook/add-member-to-group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupId, email })
+                });
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => '');
+                    throw new Error(`n8n error: ${res.status} ${txt}`);
+                }
+                const updatedGroup = await res.json();
+                // Expect updatedGroup = { id: 'abc123', name: 'Group Name', members: ['a@b.com', ...] }
+                groups = groups.map(g => g.id === updatedGroup.id ? updatedGroup : g);
+                updateGroupMembers(updatedGroup.id, updatedGroup.members);
+                showGroupFeedback(groupEl, 'Member added successfully', false);
+            } catch (err) {
+                showGroupFeedback(groupEl, 'Error: ' + err.message, true);
+            }
+        }
+
+        async function removeMember(groupId, email) {
+            // Find the group’s container so we can show feedback
+            const groupEl = document.querySelector(`[data-group-id="${groupId}"]`);
+            try {
+                const res = await fetch('https://YOUR_N8N_HOST/webhook/remove-member-from-group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupId, email })
+                });
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => '');
+                    throw new Error(`n8n error: ${res.status} ${txt}`);
+                }
+                const updatedGroup = await res.json();
+                groups = groups.map(g => g.id === updatedGroup.id ? updatedGroup : g);
+                updateGroupMembers(updatedGroup.id, updatedGroup.members);
+                showGroupFeedback(groupEl, 'Member removed', false);
+            } catch (err) {
+                showGroupFeedback(groupEl, 'Error: ' + err.message, true);
+            }
+        }
+
+        // ────────────────────────────────────────────────────────────────────────────
+        // CHAT FUNCTIONS
+        // ────────────────────────────────────────────────────────────────────────────
+        document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
+        document.getElementById('chatInputField').addEventListener('keypress', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInputField');
+            const msg = input.value.trim();
+            if (!msg) return;
+            appendChatBubble(msg, 'user');
+            input.value = '';
+
+            try {
+                const res = await fetch('https://primexeu.app.n8n.cloud/webhook/whatsapp-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg })
+                });
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => '');
+                    throw new Error(`n8n error: ${res.status} ${txt}`);
+                }
+
+                // Wenn der Webhook reinen Text zurückgibt, nutze res.text()
+                const replyText = await res.text();
+                appendChatBubble(replyText, 'agent');
+            } catch (err) {
+                appendChatBubble('Error: ' + err.message, 'agent');
+            }
+        }
+
+
+        // ────────────────────────────────────────────────────────────────────────────
+        // INITIALIZE DASHBOARD
+        // ────────────────────────────────────────────────────────────────────────────
+        document.getElementById('addGroupBtn').addEventListener('click', () => {
+            const groupName = prompt('Enter new group name:');
+            if (groupName && groupName.trim()) {
+                createGroup(groupName.trim());
+            }
+        });
+
+        // On load, fetch (or initialize) group data and render
+        loadGroups();
+    </script>
+</body>
+
+</html>
